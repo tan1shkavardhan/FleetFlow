@@ -1,14 +1,28 @@
+from datetime import datetime, timezone
+
 from app.redis_client import redis_client
 
 
-
-TELEMETRY_HISTORY_SIZE = 5
-
-def get_speed_history_key(vehicle_id: str) -> str:
-    return f"vehicle:{vehicle_id}:speed_history"
+TELEMETRY_STREAM_KEY = "telemetry:stream"
 
 
-async def store_speed(
-        vehicle_id: str,
-        speed: float
+async def publish_telemetry(
+    vehicle_id: str,
+    latitude: float,
+    longitude: float,
+    speed: float
 ):
+    event = {
+        "vehicle_id": vehicle_id,
+        "latitude": str(latitude),
+        "longitude": str(longitude),
+        "speed": str(speed),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+    stream_id = await redis_client.xadd(
+        TELEMETRY_STREAM_KEY,
+        event
+    )
+
+    return stream_id
